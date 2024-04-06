@@ -1,0 +1,11 @@
+ZZSNU
+ZZZUN
+ZAXNU
+ZASNE
+ZAYEU
+ZZWUE
+ZAVEN
+=E=A=
++++++
+
+turing_bombe ./problems/US6812_menu1.txt 1 3 2 4

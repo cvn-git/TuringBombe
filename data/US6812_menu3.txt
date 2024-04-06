@@ -1,0 +1,14 @@
+ZZJES
+ZZNFG
+ZANGC
+ZZKCR
+ZZOCE
+ZAQRE
+ZZREF
+ZAJSY
+ZZPYF
+ZAPET
+=F=A=
++++++
+
+turing_bombe ./problems/US6812_menu3.txt 1 1 5 3

@@ -1,0 +1,19 @@
+ZZAAI
+ZZDIH
+ZADHF
+ZAIFY
+ZZBYK
+ZZOKD
+ZZKDL
+ZAFLQ
+ZADTW
+ZZRWU
+ZAJUO
+ZAEOS
+ZAYSP
+ZAKPC
+=Y=O=
+=O=Y=
++++++
+
+turing_bombe ./problems/US6812_menu6.txt 1 1 2 3

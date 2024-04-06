@@ -1,0 +1,19 @@
+ZABOR
+ZZBOI
+ZZKIL
+ZZLAL
+ZZEAY
+ZZRYR
+ZZNFH
+ZZFHT
+ZZMTD
+ZZGDZ
+ZAAEZ
+ZZAFE
+ZZIKA
+ZZJEU
+=E=A=
+=A=E=
++++++
+
+turing_bombe ./problems/US6812_menu4a.txt 1 2 4 3

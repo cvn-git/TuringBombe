@@ -1,0 +1,14 @@
+EKRUE
+RTNEY
+SAOHY
+EKPHF
+RTIFB
+RTQBH
+SATHT
+SASTH
+RTRUE
+RTJEX
+=H=E=
++++++
+
+turing_bombe ./problems/US6812_menu2.txt 1 4 3 2

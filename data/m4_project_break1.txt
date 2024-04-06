@@ -1,0 +1,9 @@
+nczwvusxpnyminhz
+vonvonjlooksjhff
+
+
+-----------
+Ref: http://www.bytereef.org/m4-project-first-break.html
+
+create_menu ./problems/m4_project_break1.txt 4 test_menu.txt
+turing_bombe test_menu.txt 1 1 2 4 1
