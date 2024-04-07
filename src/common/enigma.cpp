@@ -38,7 +38,7 @@ void Enigma::configureSteckers(std::string_view stecker_setting)
 	std::string stecker_setting_pruned;
 	for(const char ch : stecker_setting)
 	{
-		if(ch != ':')
+		if((ch != ':') && (ch != ' '))
 		{
 			stecker_setting_pruned.push_back(ch);
 		}

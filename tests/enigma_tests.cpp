@@ -61,6 +61,18 @@ TEST_CASE_FIXTURE(EnigmaTestFixture, "Double step with steckers")
 	runTest("The quick brown fox jumps over the lazy dog", "ICOMRQDZSAQIQMRCPDXHABWQCPWFIUISCBV");
 }
 
+TEST_CASE_FIXTURE(EnigmaTestFixture, "Rotor M_VII")
+{
+	// Rotor M_VII is rarely seen in examples available online, so I made one up (using Rijmenants' Enigma)
+	reflector_model = bombe::ReflectorModel::THIN_C;
+	rotor_models = {
+		bombe::RotorModel::M_GAMMA, bombe::RotorModel::M_VI, bombe::RotorModel::M_VII, bombe::RotorModel::M_VIII};
+	ringstellung = "RING";
+	grundstellung = "GRUN";
+
+	runTest("The quick brown fox jumps over the lazy dog", "PBDM QRNM SIGD WTKU WMCR BKNL PWRG RGGP TKI");
+}
+
 TEST_CASE_FIXTURE(EnigmaTestFixture, "Operation Barbarossa message #1")
 {
 	// http://wiki.franklinheath.co.uk/index.php/Enigma/Sample_Messages
@@ -123,4 +135,36 @@ TEST_CASE_FIXTURE(EnigmaTestFixture, "Scharnhorst (Konteradmiral Erich Bey), 194
 
 	runTest("YKAEN ZAPMS CHZBF OCUVM RMDPY COFHA DZIZM EFXTH FLOLP ZLFGG BOTGO XGRET DWTJI QHLMX VJWKZ UASTR",
 	        "STEUE REJTA NAFJO RDJAN STAND ORTQU AAACC CVIER NEUNN EUNZW OFAHR TZWON ULSMX XSCHA RNHOR STHCO");
+}
+
+TEST_CASE_FIXTURE(EnigmaTestFixture, "Nachricht P1030700")
+{
+	// https://enigma.hoerenberg.com/index.php?cat=The%20U534%20messages&page=P1030700
+	reflector_model = bombe::ReflectorModel::THIN_B;
+	rotor_models = {
+		bombe::RotorModel::M_GAMMA, bombe::RotorModel::M_IV, bombe::RotorModel::M_III, bombe::RotorModel::M_VIII};
+	steckers = "CH EJ NV OU TY LG SZ PK DI QB";
+	ringstellung = "AACU";
+	grundstellung = "VMGC";
+
+	runTest("QBHEWTDFEQITKUWFQUHLIQQGVYGRSDOHDCOBFMDHXSKOFPAODRSVBEREIQZVEDAXSHOHBIYMCIIZSKGNDLNFKFVLWWHZXZGQXWSSPWLSOQ"
+	        "XEANCELJYJCETZTLSTTWMTOBW",
+	        "KOMXBDMXUUUBOOTEYFXDXUUUAUSBILVUNYYZWOSECHSXUUUFLOTTXVVVUUURWODREISECHSVIERKKREMASKKMITUUVZWODREIFUVFYEWHS"
+	        "YUUUZWODREIFUNFZWOYUUFZWL");
+}
+
+TEST_CASE_FIXTURE(EnigmaTestFixture, "Nachricht P1030660")
+{
+	// https://enigma.hoerenberg.com/index.php?cat=The%20U534%20messages&page=P1030660
+	reflector_model = bombe::ReflectorModel::THIN_C;
+	rotor_models = {
+		bombe::RotorModel::M_BETA, bombe::RotorModel::M_V, bombe::RotorModel::M_VI, bombe::RotorModel::M_VIII};
+	steckers = "AE BF CM DQ HU JN LX PR SZ VW";
+	ringstellung = "AAEL";
+	grundstellung = "IGZQ";
+
+	runTest("TWNHYAZGBILSHEWPGLBPQLWQEKITIAFGZHWIMCWDFXPAFEILQZWFNRFTTQHUOADVLRLGAOQKVLWLSJHWOFJJSLUVEYNRRAJAQDKQBGMFYC"
+	        "EVKPFJPKOWHHQZYZEQRTQIKKXIXTFPOEMI",
+	        "FXDXUUUOSTYFUNCQUUUFXWTTXVVVUUUEINSEINSNULDREIKKEISELEKKXXISTSECHSSTUENDLICHESDOCKENVORMITTAGSAMDREIXFUNFX"
+	        "INRENDSBURGGEMXFXDXUUUOSTMOEGLICHL");
 }
