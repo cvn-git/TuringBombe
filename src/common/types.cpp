@@ -20,6 +20,16 @@ public:
 
 namespace bombe {
 
+Letter char2Letter(char ch)
+{
+	const auto letter = static_cast<Letter>(::towupper(ch) - 'A');
+	if(letter >= NUM_LETTERS)
+	{
+		throw std::invalid_argument("char2Letter(): Letter out of bound");
+	}
+	return letter;
+}
+
 void char2Letter(std::span<const char> chars, std::span<Letter> letters)
 {
 	if(chars.size() != letters.size())
@@ -29,11 +39,7 @@ void char2Letter(std::span<const char> chars, std::span<Letter> letters)
 
 	for(size_t k = 0; k < chars.size(); ++k)
 	{
-		letters[k] = static_cast<Letter>(::towupper(chars[k]) - 'A');
-		if(letters[k] >= NUM_LETTERS)
-		{
-			throw std::invalid_argument("char2Letter(): Letter out of bound");
-		}
+		letters[k] = char2Letter(chars[k]);
 	}
 }
 

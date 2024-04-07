@@ -1,4 +1,5 @@
 add_library(bombe_common
+    bombe.h         bombe.cpp
     enigma.h        enigma.cpp
     reflector.h     reflector.cpp
     rotor.h         rotor.cpp

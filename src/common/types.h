@@ -18,6 +18,8 @@ inline constexpr Letter NUM_LETTERS = 26;
 using SingleMap = std::array<Letter, NUM_LETTERS>;
 using DoubleMap = std::array<Letter, 2 * NUM_LETTERS>;
 
+Letter char2Letter(char ch);
+
 void char2Letter(std::span<const char> chars, std::span<Letter> letters);
 
 void letter2Char(std::span<const Letter> letters, std::span<char> chars);
