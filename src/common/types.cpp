@@ -67,4 +67,21 @@ std::string printMap(std::span<const Letter> map)
 	return output;
 }
 
+void assertSymmetricalMap(std::span<const Letter> map)
+{
+	if(map.size() < NUM_LETTERS)
+	{
+		throw std::runtime_error("Insufficient map");
+	}
+
+	for(Letter l1 = 0; l1 < NUM_LETTERS; ++l1)
+	{
+		const Letter l2 = map[l1];
+		if(map[l2] != l1)
+		{
+			throw std::runtime_error("Map not symmetrical");
+		}
+	}
+}
+
 } // namespace bombe

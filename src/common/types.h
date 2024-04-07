@@ -31,6 +31,8 @@ const DoubleMap& nullDoubleMap();
 
 std::string printMap(std::span<const Letter> map);
 
+void assertSymmetricalMap(std::span<const Letter> map);
+
 } // namespace bombe
 
 #endif // BOMBE_TYPES_H

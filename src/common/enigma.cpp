@@ -29,7 +29,7 @@ void Enigma::configureRotors(std::string_view ringstellung, std::string_view gru
 	for(size_t rotor_idx = 0; rotor_idx < num_rotors; ++rotor_idx)
 	{
 		const Rotor& rotor = scrambler_.rotor(rotor_idx);
-		scrambler_.setRotorPosition(rotor_idx, null_map[rotor.position() + NUM_LETTERS - rotor.ring()]);
+		scrambler_.setRotorPosition(rotor_idx, null_map[grundstellung_letters[rotor_idx] + NUM_LETTERS - rotor.ring()]);
 	}
 }
 
@@ -109,10 +109,11 @@ void Enigma::stepScrambler()
 
 	if(mid_rotor.isTurnover())
 	{
+		// Double step
 		scrambler_.setRotorPosition(slow_idx, null_map[slow_rotor.position() + 1]);
+		scrambler_.setRotorPosition(mid_idx, null_map[mid_rotor.position() + 1]);
 	}
-
-	if(fast_rotor.isTurnover())
+	else if(fast_rotor.isTurnover())
 	{
 		scrambler_.setRotorPosition(mid_idx, null_map[mid_rotor.position() + 1]);
 	}
