@@ -35,8 +35,17 @@ void Enigma::configureRotors(std::string_view ringstellung, std::string_view gru
 
 void Enigma::configureSteckers(std::string_view stecker_setting)
 {
-	const size_t numSteckers = stecker_setting.size() / 2;
-	if((numSteckers * 2) != stecker_setting.size())
+	std::string stecker_setting_pruned;
+	for(const char ch : stecker_setting)
+	{
+		if(ch != ':')
+		{
+			stecker_setting_pruned.push_back(ch);
+		}
+	}
+
+	const size_t numSteckers = stecker_setting_pruned.size() / 2;
+	if((numSteckers * 2) != stecker_setting_pruned.size())
 	{
 		throw std::invalid_argument("stecker_setting must have even length");
 	}
@@ -44,12 +53,12 @@ void Enigma::configureSteckers(std::string_view stecker_setting)
 	resetSteckers();
 
 	std::vector<Letter> stecker_letters(numSteckers * 2);
-	char2Letter(stecker_setting, stecker_letters);
+	char2Letter(stecker_setting_pruned, stecker_letters);
 	for(size_t idx = 0; idx < numSteckers; ++idx)
 	{
 		const auto l1 = stecker_letters[idx * 2];
 		const auto l2 = stecker_letters[idx * 2 + 1];
-		if(l1 != l2)
+		if(l1 == l2)
 		{
 			throw std::invalid_argument("Invalid stecker pair");
 		}
