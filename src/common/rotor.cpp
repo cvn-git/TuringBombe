@@ -75,16 +75,8 @@ Rotor::Rotor(RotorModel model, const DoubleMap* left_reflector)
 		throw std::invalid_argument("Invalid rotor model");
 	}
 
-	std::vector<Letter> turnover_letters(turnovers.size());
-	char2Letter(turnovers, turnover_letters);
-	for(const Letter letter : turnover_letters)
-	{
-		if(turnovers_[letter])
-		{
-			throw std::invalid_argument("Duplicated turnovers");
-		}
-		turnovers_.set(letter);
-	}
+	turnover_letters_.resize(turnovers.size());
+	char2Letter(turnovers, turnover_letters_);
 
 	std::array<Letter, NUM_LETTERS> wiring_letters;
 	char2Letter(wiring, wiring_letters);
@@ -111,6 +103,19 @@ void Rotor::setPosition(Letter position)
 		(*this)[in] = null_map[out + outward_map_[out + position_]];
 	}
 	extendMap(*this);
+}
+
+void Rotor::setRing(Letter ring_position)
+{
+	assert(ring_position < NUM_LETTERS);
+	ring_ = ring_position;
+
+	const DoubleMap& null_map = nullDoubleMap();
+	turnovers_.reset();
+	for(const Letter m : turnover_letters_)
+	{
+		turnovers_.set(null_map[m + NUM_LETTERS - ring_]);
+	}
 }
 
 } // namespace bombe

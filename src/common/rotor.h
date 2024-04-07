@@ -4,6 +4,7 @@
 #include "types.h"
 
 #include <bitset>
+#include <vector>
 
 namespace bombe {
 
@@ -42,11 +43,7 @@ public:
 		return ring_;
 	}
 
-	void setRing(Letter ring_position)
-	{
-		assert(ring_position < NUM_LETTERS);
-		ring_ = ring_position;
-	}
+	void setRing(Letter ring_position);
 
 	bool isTurnover() const
 	{
@@ -54,12 +51,13 @@ public:
 	}
 
 private:
-	const DoubleMap* left_reflector_;
 	DoubleMap inward_map_;
 	DoubleMap outward_map_;
-	std::bitset<NUM_LETTERS> turnovers_;
+	const DoubleMap* left_reflector_;
 	Letter position_{0};
 	Letter ring_{0};
+	std::bitset<NUM_LETTERS> turnovers_;
+	std::vector<Letter> turnover_letters_;
 };
 
 } // namespace bombe
