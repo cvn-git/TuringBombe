@@ -26,7 +26,9 @@ RotorModel getRotorModel(bool is_thin, size_t model_number);
 class Rotor : public DoubleMap
 {
 public:
-	Rotor(RotorModel model, const DoubleMap& left_reflector);
+	Rotor() = default;
+
+	Rotor(RotorModel model, const DoubleMap* left_reflector);
 
 	Letter position() const
 	{
@@ -52,7 +54,7 @@ public:
 	}
 
 private:
-	const DoubleMap& left_reflector_;
+	const DoubleMap* left_reflector_;
 	DoubleMap inward_map_;
 	DoubleMap outward_map_;
 	std::bitset<NUM_LETTERS> turnovers_;

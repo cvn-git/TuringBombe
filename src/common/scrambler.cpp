@@ -6,17 +6,18 @@ namespace bombe {
 
 Scrambler::Scrambler(ReflectorModel reflector_model, std::span<const RotorModel> rotor_models)
 	: reflector_{reflector_model}
+	, rotors_{rotor_models.size()}
 {
-	if((rotor_models.size() != 3) || (rotor_models.size() != 4))
+	if((numRotors() != 3) && (numRotors() != 4))
 	{
 		throw std::invalid_argument("Wrong number of rotors");
 	}
 
 	const DoubleMap* left_reflector = &reflector_;
-	for(const auto rotor_model : rotor_models)
+	for(size_t k = 0; k < numRotors(); ++k)
 	{
-		rotors_.emplace_back(rotor_model, *left_reflector);
-		left_reflector = &rotors_.back();
+		rotors_[k] = Rotor(rotor_models[k], left_reflector);
+		left_reflector = &rotors_[k];
 	}
 }
 

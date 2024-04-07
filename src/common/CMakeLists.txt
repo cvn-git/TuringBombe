@@ -5,3 +5,7 @@ add_library(bombe_common
     scrambler.h     scrambler.cpp
     types.h         types.cpp
 )
+
+target_include_directories(bombe_common
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+)

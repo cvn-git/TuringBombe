@@ -19,11 +19,13 @@ public:
 	void process(std::string_view input, std::span<char> output);
 
 private:
+	void resetSteckers();
+
 	void stepScrambler();
 
 private:
 	Scrambler scrambler_;
-	SingleMap stecker_;
+	SingleMap steckers_;
 };
 
 } // namespace bombe

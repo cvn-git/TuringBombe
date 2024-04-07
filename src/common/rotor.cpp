@@ -14,7 +14,7 @@ RotorModel getRotorModel(bool is_thin, size_t model_number)
 	return static_cast<RotorModel>(model_number);
 }
 
-Rotor::Rotor(RotorModel model, const DoubleMap& left_reflector)
+Rotor::Rotor(RotorModel model, const DoubleMap* left_reflector)
 	: left_reflector_{left_reflector}
 {
 	std::string_view wiring;
@@ -107,7 +107,7 @@ void Rotor::setPosition(Letter position)
 	const DoubleMap& null_map = nullDoubleMap();
 	for(Letter in = 0; in < NUM_LETTERS; ++in)
 	{
-		const Letter out = left_reflector_[in + inward_map_[in + position_]];
+		const Letter out = (*left_reflector_)[in + inward_map_[in + position_]];
 		(*this)[in] = null_map[out + outward_map_[out + position_]];
 	}
 	extendMap(*this);

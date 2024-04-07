@@ -4,8 +4,10 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <format>
 #include <span>
 #include <stdexcept>
+#include <string>
 
 namespace bombe {
 
@@ -26,6 +28,8 @@ inline void extendMap(DoubleMap& map)
 }
 
 const DoubleMap& nullDoubleMap();
+
+std::string printMap(std::span<const Letter> map);
 
 } // namespace bombe
 

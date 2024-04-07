@@ -48,7 +48,7 @@ void letter2Char(std::span<const Letter> letters, std::span<char> chars)
 	{
 		if(letters[k] >= NUM_LETTERS)
 		{
-			throw std::invalid_argument("char2Letter(): Letter out of bound");
+			throw std::invalid_argument(std::format("char2Letter(): Letter out of bound, pos = {}", k));
 		}
 		chars[k] = static_cast<char>(letters[k]) + 'A';
 	}
@@ -58,6 +58,13 @@ const DoubleMap& nullDoubleMap()
 {
 	static const NullDoubleMap null;
 	return null;
+}
+
+std::string printMap(std::span<const Letter> map)
+{
+	std::string output(map.size(), ' ');
+	letter2Char(map, output);
+	return output;
 }
 
 } // namespace bombe

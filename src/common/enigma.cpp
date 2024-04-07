@@ -4,7 +4,9 @@ namespace bombe {
 
 Enigma::Enigma(ReflectorModel reflector_model, std::span<const RotorModel> rotor_models)
 	: scrambler_{reflector_model, rotor_models}
-{}
+{
+	resetSteckers();
+}
 
 void Enigma::configureRotors(std::string_view ringstellung, std::string_view grundstellung)
 {
@@ -39,13 +41,8 @@ void Enigma::configureSteckers(std::string_view stecker_setting)
 		throw std::invalid_argument("stecker_setting must have even length");
 	}
 
-	// Default steckers
-	for(Letter k = 0; k < NUM_LETTERS; ++k)
-	{
-		stecker_[k] = k;
-	}
+	resetSteckers();
 
-	// Custom steckers
 	std::vector<Letter> stecker_letters(numSteckers * 2);
 	char2Letter(stecker_setting, stecker_letters);
 	for(size_t idx = 0; idx < numSteckers; ++idx)
@@ -56,12 +53,12 @@ void Enigma::configureSteckers(std::string_view stecker_setting)
 		{
 			throw std::invalid_argument("Invalid stecker pair");
 		}
-		if((stecker_[l1] != l1) || (stecker_[l2] != l2))
+		if((steckers_[l1] != l1) || (steckers_[l2] != l2))
 		{
 			throw std::invalid_argument("Duplicated steckers");
 		}
-		stecker_[l1] = l2;
-		stecker_[l2] = l1;
+		steckers_[l1] = l2;
+		steckers_[l2] = l1;
 	}
 }
 
@@ -75,7 +72,7 @@ void Enigma::process(std::span<const Letter> input, std::span<Letter> output)
 	for(size_t k = 0; k < input.size(); ++k)
 	{
 		stepScrambler();
-		output[k] = stecker_[scrambler_.map()[stecker_[input[k]]]];
+		output[k] = steckers_[scrambler_.map()[steckers_[input[k]]]];
 	}
 }
 
@@ -87,6 +84,14 @@ void Enigma::process(std::string_view input, std::span<char> output)
 	char2Letter(input, input_letters);
 	process(input_letters, output_letters);
 	letter2Char(output_letters, output);
+}
+
+void Enigma::resetSteckers()
+{
+	for(Letter k = 0; k < NUM_LETTERS; ++k)
+	{
+		steckers_[k] = k;
+	}
 }
 
 void Enigma::stepScrambler()
