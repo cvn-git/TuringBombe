@@ -1,6 +1,7 @@
+#include "cli_tools.h"
 #include "enigma.h"
 
-#include <iostream>
+namespace {
 
 std::string usageSyntax()
 {
@@ -11,40 +12,14 @@ size_t parseNumRotors(std::span<const char* const>& args)
 {
 	if(args.empty())
 	{
-		throw std::invalid_argument("Cannot parse numrotors\n" + usageSyntax());
+		throw std::invalid_argument("Cannot parse numrotors\n");
 	}
 	const size_t num_rotors = std::stoi(args[0]);
 	args = args.subspan(1);
 	return num_rotors;
 }
 
-bombe::ReflectorModel parseReflectorModel(std::span<const char* const>& args, size_t num_rotors)
-{
-	if(args.empty())
-	{
-		throw std::invalid_argument("Cannot parse reflector model\n" + usageSyntax());
-	}
-	const size_t model_number = std::stoi(args[0]);
-	args = args.subspan(1);
-	return bombe::getReflectorModel(num_rotors == 4, model_number);
-}
-
-std::vector<bombe::RotorModel> parseRotorModels(std::span<const char* const>& args, size_t num_rotors)
-{
-	if(args.size() < num_rotors)
-	{
-		throw std::invalid_argument("Cannot parse rotor models\n" + usageSyntax());
-	}
-	std::vector<bombe::RotorModel> models(num_rotors);
-	for(size_t k = 0; k < num_rotors; ++k)
-	{
-		const bool is_thin = (num_rotors == 4) && (k == 0);
-		const size_t model_number = std::stoi(args[k]);
-		models[k] = bombe::getRotorModel(is_thin, model_number);
-	}
-	args = args.subspan(num_rotors);
-	return models;
-}
+} // anonymous namespace
 
 int main(int argc, char** argv)
 {
@@ -52,8 +27,8 @@ int main(int argc, char** argv)
 	{
 		std::span<const char* const> args(argv + 1, argc - 1);
 		const auto num_rotors = parseNumRotors(args);
-		const auto reflector_model = parseReflectorModel(args, num_rotors);
-		const auto rotor_models = parseRotorModels(args, num_rotors);
+		const auto reflector_model = bombe::cli::parseReflectorModel(args, num_rotors);
+		const auto rotor_models = bombe::cli::parseRotorModels(args, num_rotors);
 
 		bombe::Enigma enigma(reflector_model, rotor_models);
 
@@ -65,7 +40,7 @@ int main(int argc, char** argv)
 
 		if(args.size() < 2)
 		{
-			throw std::invalid_argument("Cannot parse ringstellung/grundstellung\n" + usageSyntax());
+			throw std::invalid_argument("Cannot parse ringstellung/grundstellung\n");
 		}
 		enigma.configureRotors(args[0], args[1]);
 
@@ -95,6 +70,7 @@ int main(int argc, char** argv)
 	catch(const std::exception& e)
 	{
 		std::cerr << "EXCEPTION: " << e.what() << '\n';
+		std::cout << usageSyntax() << "\n";
 		return -1;
 	}
 }

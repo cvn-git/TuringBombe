@@ -43,6 +43,15 @@ void char2Letter(std::span<const char> chars, std::span<Letter> letters)
 	}
 }
 
+char letter2Char(Letter letter)
+{
+	if(letter >= NUM_LETTERS)
+	{
+		throw std::invalid_argument("char2Letter(): Letter out of bound");
+	}
+	return static_cast<char>(letter) + 'A';
+}
+
 void letter2Char(std::span<const Letter> letters, std::span<char> chars)
 {
 	if(chars.size() != letters.size())
@@ -52,11 +61,7 @@ void letter2Char(std::span<const Letter> letters, std::span<char> chars)
 
 	for(size_t k = 0; k < chars.size(); ++k)
 	{
-		if(letters[k] >= NUM_LETTERS)
-		{
-			throw std::invalid_argument(std::format("char2Letter(): Letter out of bound, pos = {}", k));
-		}
-		chars[k] = static_cast<char>(letters[k]) + 'A';
+		chars[k] = letter2Char(letters[k]);
 	}
 }
 

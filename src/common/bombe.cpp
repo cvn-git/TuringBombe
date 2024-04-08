@@ -49,6 +49,8 @@ Bombe::Menu Bombe::loadMenu(std::span<const std::string> lines)
 
 Bombe::Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const RotorModel> rotor_models)
 	: menu_{menu}
+	, reflector_model_{reflector_model}
+	, rotor_models_{rotor_models.begin(), rotor_models.end()}
 {
 	// Create scramblers
 	const size_t num_rotors = rotor_models.size();
@@ -77,13 +79,14 @@ Bombe::Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const R
 	}
 }
 
-void Bombe::run()
+const std::vector<Bombe::Stop>& Bombe::run()
 {
 	const size_t num_edges = scramblers_.size();
 	const size_t num_rotors = scramblers_[0]->numRotors();
 	std::vector<Letter> rotor_offsets(num_rotors, 0);
 	const DoubleMap& null_map = nullDoubleMap();
 
+	stops_.clear();
 	for(bool terminated = false; !terminated;)
 	{
 		resetWires();
@@ -138,7 +141,7 @@ void Bombe::run()
 		}
 		if((num_on == 1) || (num_on == (NUM_LETTERS - 1)))
 		{
-			addResult(reg_letter, num_on);
+			addResult(*scramblers_[0], reg_letter, num_on);
 		}
 
 		// Step rotors
@@ -169,6 +172,8 @@ void Bombe::run()
 			}
 		}
 	}
+
+	return stops_;
 }
 
 void Bombe::resetWires()
@@ -195,6 +200,34 @@ void Bombe::connectWire(Wire& from_wire, Wire& to_wire)
 		throw std::runtime_error("Too many connections per wire");
 	}
 	from_wire.connections[from_wire.num_connections++] = &to_wire;
+}
+
+void Bombe::addResult(const Scrambler& first_scrambler, Letter reg_letter, size_t num_on)
+{
+	stops_.emplace_back();
+	auto& stop = stops_.back();
+
+	stop.reflector_model = reflector_model_;
+	stop.rotor_models = rotor_models_;
+
+	const auto num_rotors = first_scrambler.numRotors();
+	stop.rotor_positions.resize(num_rotors);
+	for(size_t k = 0; k < num_rotors; ++k)
+	{
+		stop.rotor_positions[k] = first_scrambler.rotor(k).position();
+	}
+
+	stop.stecker.first = reg_letter;
+	const bool voltaged = (num_on == 1);
+	const auto& group = wire_groups_[reg_letter];
+	for(Letter k = 0; k < NUM_LETTERS; ++k)
+	{
+		if(group[k].voltage_applied == voltaged)
+		{
+			stop.stecker.second = k;
+			break;
+		}
+	}
 }
 
 } // namespace bombe

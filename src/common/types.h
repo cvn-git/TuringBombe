@@ -22,6 +22,8 @@ Letter char2Letter(char ch);
 
 void char2Letter(std::span<const char> chars, std::span<Letter> letters);
 
+char letter2Char(Letter letter);
+
 void letter2Char(std::span<const Letter> letters, std::span<char> chars);
 
 inline void extendMap(DoubleMap& map)
