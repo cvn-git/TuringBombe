@@ -41,8 +41,8 @@ private:
 	struct WireGroup
 	{
 		std::array<const DoubleMap*, MAX_SCRAMBLERS_PER_LETTER> scramblers{nullptr};
-		std::array<Letter, MAX_SCRAMBLERS_PER_LETTER> scrambler_ends{0};
 		std::bitset<NUM_LETTERS> wires;
+		std::array<Letter, MAX_SCRAMBLERS_PER_LETTER> scrambler_ends{0};
 		uint8_t num_scrambler{0};
 	};
 	static_assert(sizeof(WireGroup) == 64, "Group object does not fit a cache line");
