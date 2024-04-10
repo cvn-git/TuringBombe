@@ -38,21 +38,20 @@ public:
 	static Menu loadMenu(std::span<const std::string> lines);
 
 private:
-	static constexpr size_t MAX_CONNECTIONS = 7;
+	static constexpr size_t MAX_SCRAMBLERS_PER_LETTER = 6;
 
-	struct Wire
+	struct WireGroup
 	{
-		std::array<Wire*, MAX_CONNECTIONS> connections;
-		uint8_t num_connections;
-		bool voltage_applied;
+		std::array<const DoubleMap*, MAX_SCRAMBLERS_PER_LETTER> scramblers{nullptr};
+		std::array<Letter, MAX_SCRAMBLERS_PER_LETTER> scrambler_ends{0};
+		std::bitset<NUM_LETTERS> wires;
+		uint8_t num_scrambler{0};
 	};
-	static_assert(sizeof(Wire) == 64, "Wire object does not fit a cache line");
-
-	using WireGroup = std::array<Wire, NUM_LETTERS>;
+	static_assert(sizeof(WireGroup) == 64, "Group object does not fit a cache line");
 
 	void resetWires();
 
-	static void connectWire(Wire& from_wire, Wire& to_wire);
+	void connectScrambler(const Scrambler& scrambler, Letter from, Letter to);
 
 	void addResult(const Scrambler& first_scrambler, Letter reg_letter, size_t num_on);
 
@@ -62,7 +61,7 @@ private:
 	const ReflectorModel reflector_model_;
 	const std::vector<RotorModel> rotor_models_;
 	std::vector<std::unique_ptr<Scrambler>> scramblers_;
-	std::queue<Wire*> bft_queue_;
+	std::queue<std::pair<Letter, Letter>> bft_queue_;
 	std::vector<Stop> stops_;
 };
 

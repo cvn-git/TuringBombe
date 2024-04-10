@@ -66,16 +66,10 @@ Bombe::Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const R
 			scrambler->setRotorPosition(k, edge.rotor_positions[k]);
 		}
 
-		scramblers_.push_back(std::move(scrambler));
-	}
+		connectScrambler(*scrambler, edge.nodes.first, edge.nodes.second);
+		connectScrambler(*scrambler, edge.nodes.second, edge.nodes.first);
 
-	// Connect diagonal board
-	for(Letter group_idx = 0; group_idx < NUM_LETTERS; ++group_idx)
-	{
-		for(Letter wire_idx = 0; wire_idx < NUM_LETTERS; ++wire_idx)
-		{
-			wire_groups_[group_idx][wire_idx].connections[0] = &wire_groups_[wire_idx][group_idx];
-		}
+		scramblers_.push_back(std::move(scrambler));
 	}
 }
 
@@ -91,54 +85,44 @@ const std::vector<Bombe::Stop>& Bombe::run()
 	{
 		resetWires();
 
-		// Connect scramblers
-		for(size_t edge_idx = 0; edge_idx < num_edges; ++edge_idx)
-		{
-			const auto& edge = menu_.edges[edge_idx];
-			auto& group1 = wire_groups_[edge.nodes.first];
-			auto& group2 = wire_groups_[edge.nodes.second];
-			const auto& scrambler_map = scramblers_[edge_idx]->map();
-			for(Letter letter1 = 0; letter1 < NUM_LETTERS; ++letter1)
-			{
-				auto& wire1 = group1[letter1];
-				auto& wire2 = group2[scrambler_map[letter1]];
-				connectWire(wire1, wire2);
-				connectWire(wire2, wire1);
-			}
-		}
-
 		// Apply voltage to registers
 		for(const auto& reg : menu_.registers)
 		{
-			auto& wire = wire_groups_[reg.first][reg.second];
-			wire.voltage_applied = true;
-			bft_queue_.push(&wire);
+			wire_groups_[reg.first].wires.set(reg.second);
+			bft_queue_.emplace(reg.first, reg.second);
 		}
 
 		// Propagate voltage (breadth-first traversal)
 		while(!bft_queue_.empty())
 		{
-			auto& wire = *bft_queue_.front();
+			const auto [group_idx, wire_idx] = bft_queue_.front();
 			bft_queue_.pop();
-			for(decltype(wire.num_connections) k = 0; k < wire.num_connections; ++k)
+
+			// Via diagonal board
+			if(auto& wires = wire_groups_[wire_idx].wires; !wires[group_idx])
 			{
-				auto* const other = wire.connections[k];
-				if(!other->voltage_applied)
+				wires.set(group_idx);
+				bft_queue_.emplace(wire_idx, group_idx);
+			}
+
+			// Via scramblers
+			const auto& group = wire_groups_[group_idx];
+			for(decltype(group.num_scrambler) k = 0; k < group.num_scrambler; ++k)
+			{
+				const Letter other_group_idx = group.scrambler_ends[k];
+				const Letter other_wire_idx = (*group.scramblers[k])[wire_idx];
+				auto& other_wires = wire_groups_[other_group_idx].wires;
+				if(!other_wires[other_wire_idx])
 				{
-					other->voltage_applied = true;
-					bft_queue_.push(other);
+					other_wires.set(other_wire_idx);
+					bft_queue_.emplace(other_group_idx, other_wire_idx);
 				}
 			}
 		}
 
 		// Check register
-		size_t num_on = 0;
 		const Letter reg_letter = menu_.registers[0].first;
-		for(const auto& wire : wire_groups_[reg_letter])
-		{
-			if(wire.voltage_applied)
-				++num_on;
-		}
+		const size_t num_on = wire_groups_[reg_letter].wires.count();
 		if((num_on == 1) || (num_on == (NUM_LETTERS - 1)))
 		{
 			addResult(*scramblers_[0], reg_letter, num_on);
@@ -180,11 +164,7 @@ void Bombe::resetWires()
 {
 	for(auto& group : wire_groups_)
 	{
-		for(auto& wire : group)
-		{
-			wire.num_connections = 1; // Keep just the diagonal board
-			wire.voltage_applied = false;
-		}
+		group.wires.reset();
 	}
 
 	if(!bft_queue_.empty())
@@ -193,13 +173,16 @@ void Bombe::resetWires()
 	}
 }
 
-void Bombe::connectWire(Wire& from_wire, Wire& to_wire)
+void Bombe::connectScrambler(const Scrambler& scrambler, Letter from, Letter to)
 {
-	if(from_wire.num_connections >= MAX_CONNECTIONS)
+	auto& group = wire_groups_[from];
+	if(group.num_scrambler >= group.scramblers.size())
 	{
-		throw std::runtime_error("Too many connections per wire");
+		throw std::invalid_argument("Too many scramblers per letter");
 	}
-	from_wire.connections[from_wire.num_connections++] = &to_wire;
+	group.scramblers[group.num_scrambler] = &scrambler.map();
+	group.scrambler_ends[group.num_scrambler] = to;
+	group.num_scrambler += 1;
 }
 
 void Bombe::addResult(const Scrambler& first_scrambler, Letter reg_letter, size_t num_on)
@@ -219,10 +202,10 @@ void Bombe::addResult(const Scrambler& first_scrambler, Letter reg_letter, size_
 
 	stop.stecker.first = reg_letter;
 	const bool voltaged = (num_on == 1);
-	const auto& group = wire_groups_[reg_letter];
+	const auto& wires = wire_groups_[reg_letter].wires;
 	for(Letter k = 0; k < NUM_LETTERS; ++k)
 	{
-		if(group[k].voltage_applied == voltaged)
+		if(wires[k] == voltaged)
 		{
 			stop.stecker.second = k;
 			break;
