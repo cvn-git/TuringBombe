@@ -3,8 +3,6 @@
 
 #include "scrambler.h"
 
-#include <queue>
-
 namespace bombe {
 
 class Bombe
@@ -61,7 +59,6 @@ private:
 	const ReflectorModel reflector_model_;
 	const std::vector<RotorModel> rotor_models_;
 	std::vector<std::unique_ptr<Scrambler>> scramblers_;
-	std::queue<std::pair<Letter, Letter>> bft_queue_;
 	std::vector<Stop> stops_;
 };
 

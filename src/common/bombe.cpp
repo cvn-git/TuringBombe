@@ -1,5 +1,51 @@
 #include "bombe.h"
 
+namespace {
+
+template <typename T>
+class FastQueue
+{
+	std::vector<T> buffer_;
+	size_t tail_{0};
+	size_t head_{0};
+
+public:
+	FastQueue(size_t size)
+		: buffer_{size}
+	{
+		clear();
+	}
+
+	bool empty() const
+	{
+		return tail_ == head_;
+	}
+
+	const T& front() const
+	{
+		return buffer_[tail_];
+	}
+
+	void clear()
+	{
+		tail_ = 0;
+		head_ = 0;
+	}
+
+	void pop()
+	{
+		++tail_;
+	}
+
+	template <class... Args>
+	void emplace(Args&&... args)
+	{
+		buffer_[head_++] = T{std::forward<Args>(args)...};
+	}
+};
+
+} // anonymous namespace
+
 namespace bombe {
 
 Bombe::Menu Bombe::loadMenu(std::span<const std::string> lines)
@@ -79,30 +125,32 @@ const std::vector<Bombe::Stop>& Bombe::run()
 	const size_t num_rotors = scramblers_[0]->numRotors();
 	std::vector<Letter> rotor_offsets(num_rotors, 0);
 	const DoubleMap& null_map = nullDoubleMap();
+	FastQueue<std::pair<Letter, Letter>> bft_queue(NUM_LETTERS * NUM_LETTERS);
 
 	stops_.clear();
 	for(bool terminated = false; !terminated;)
 	{
 		resetWires();
+		bft_queue.clear();
 
 		// Apply voltage to registers
 		for(const auto& reg : menu_.registers)
 		{
 			wire_groups_[reg.first].wires.set(reg.second);
-			bft_queue_.emplace(reg.first, reg.second);
+			bft_queue.emplace(reg.first, reg.second);
 		}
 
 		// Propagate voltage (breadth-first traversal)
-		while(!bft_queue_.empty())
+		while(!bft_queue.empty())
 		{
-			const auto [group_idx, wire_idx] = bft_queue_.front();
-			bft_queue_.pop();
+			const auto [group_idx, wire_idx] = bft_queue.front();
+			bft_queue.pop();
 
 			// Via diagonal board
 			if(auto& wires = wire_groups_[wire_idx].wires; !wires[group_idx])
 			{
 				wires.set(group_idx);
-				bft_queue_.emplace(wire_idx, group_idx);
+				bft_queue.emplace(wire_idx, group_idx);
 			}
 
 			// Via scramblers
@@ -115,7 +163,7 @@ const std::vector<Bombe::Stop>& Bombe::run()
 				if(!other_wires[other_wire_idx])
 				{
 					other_wires.set(other_wire_idx);
-					bft_queue_.emplace(other_group_idx, other_wire_idx);
+					bft_queue.emplace(other_group_idx, other_wire_idx);
 				}
 			}
 		}
@@ -165,11 +213,6 @@ void Bombe::resetWires()
 	for(auto& group : wire_groups_)
 	{
 		group.wires.reset();
-	}
-
-	if(!bft_queue_.empty())
-	{
-		throw std::runtime_error("BFT queue not empty");
 	}
 }
 
