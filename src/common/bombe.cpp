@@ -56,9 +56,10 @@ Bombe::Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const R
 	const size_t num_edges = menu.edges.size();
 	const size_t num_rotors = rotor_models.size();
 	scramblers_.reserve(num_edges);
-	scrambler_maps_.reserve(num_edges);
-	for(const auto& edge : menu.edges)
+	scrambler_maps_.resize(num_edges);
+	for(size_t edge_idx = 0; edge_idx < num_edges; ++edge_idx)
 	{
+		const auto& edge = menu.edges[edge_idx];
 		if(edge.rotor_positions.size() != num_rotors)
 		{
 			throw std::invalid_argument("Invalid bombe menu");
@@ -70,7 +71,7 @@ Bombe::Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const R
 			scramblers_.back().setRotorPosition(k, edge.rotor_positions[k]);
 		}
 
-		scrambler_maps_.emplace_back(SingleMap{}, edge.nodes);
+		scrambler_maps_[edge_idx].nodes = edge.nodes;
 	}
 }
 
