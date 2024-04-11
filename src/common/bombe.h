@@ -36,29 +36,23 @@ public:
 	static Menu loadMenu(std::span<const std::string> lines);
 
 private:
-	static constexpr size_t MAX_SCRAMBLERS_PER_LETTER = 6;
-
-	struct WireGroup
+	struct ScramblerMap
 	{
-		std::array<const DoubleMap*, MAX_SCRAMBLERS_PER_LETTER> scramblers{nullptr};
-		std::bitset<NUM_LETTERS> wires;
-		std::array<Letter, MAX_SCRAMBLERS_PER_LETTER> scrambler_ends{0};
-		uint8_t num_scrambler{0};
+		SingleMap map;
+		std::pair<Letter, Letter> nodes;
+		uint32_t padding;
 	};
-	static_assert(sizeof(WireGroup) == 64, "Group object does not fit a cache line");
-
-	void resetWires();
-
-	void connectScrambler(const Scrambler& scrambler, Letter from, Letter to);
+	static_assert(sizeof(ScramblerMap) == 32, "Invalid ScramblerMap size");
 
 	void addResult(const Scrambler& first_scrambler, Letter reg_letter, size_t num_on);
 
 private:
-	std::array<WireGroup, NUM_LETTERS> wire_groups_;
+	std::array<std::bitset<NUM_LETTERS>, NUM_LETTERS> wire_groups_;
 	const Menu& menu_;
 	const ReflectorModel reflector_model_;
 	const std::vector<RotorModel> rotor_models_;
-	std::vector<std::unique_ptr<Scrambler>> scramblers_;
+	std::vector<Scrambler> scramblers_;
+	std::vector<ScramblerMap> scrambler_maps_;
 	std::vector<Stop> stops_;
 };
 

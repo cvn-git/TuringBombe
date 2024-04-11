@@ -1,51 +1,5 @@
 #include "bombe.h"
 
-namespace {
-
-template <typename T>
-class FastQueue
-{
-	std::vector<T> buffer_;
-	size_t tail_{0};
-	size_t head_{0};
-
-public:
-	FastQueue(size_t size)
-		: buffer_{size}
-	{
-		clear();
-	}
-
-	bool empty() const
-	{
-		return tail_ == head_;
-	}
-
-	const T& front() const
-	{
-		return buffer_[tail_];
-	}
-
-	void clear()
-	{
-		tail_ = 0;
-		head_ = 0;
-	}
-
-	void pop()
-	{
-		++tail_;
-	}
-
-	template <class... Args>
-	void emplace(Args&&... args)
-	{
-		buffer_[head_++] = T{std::forward<Args>(args)...};
-	}
-};
-
-} // anonymous namespace
-
 namespace bombe {
 
 Bombe::Menu Bombe::loadMenu(std::span<const std::string> lines)
@@ -99,81 +53,87 @@ Bombe::Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const R
 	, rotor_models_{rotor_models.begin(), rotor_models.end()}
 {
 	// Create scramblers
+	const size_t num_edges = menu.edges.size();
 	const size_t num_rotors = rotor_models.size();
+	scramblers_.reserve(num_edges);
+	scrambler_maps_.reserve(num_edges);
 	for(const auto& edge : menu.edges)
 	{
-		auto scrambler = std::make_unique<Scrambler>(reflector_model, rotor_models);
 		if(edge.rotor_positions.size() != num_rotors)
 		{
 			throw std::invalid_argument("Invalid bombe menu");
 		}
+
+		scramblers_.emplace_back(reflector_model, rotor_models);
 		for(size_t k = 0; k < num_rotors; ++k)
 		{
-			scrambler->setRotorPosition(k, edge.rotor_positions[k]);
+			scramblers_.back().setRotorPosition(k, edge.rotor_positions[k]);
 		}
 
-		connectScrambler(*scrambler, edge.nodes.first, edge.nodes.second);
-		connectScrambler(*scrambler, edge.nodes.second, edge.nodes.first);
-
-		scramblers_.push_back(std::move(scrambler));
+		scrambler_maps_.emplace_back(SingleMap{}, edge.nodes);
 	}
 }
 
 const std::vector<Bombe::Stop>& Bombe::run()
 {
 	const size_t num_edges = scramblers_.size();
-	const size_t num_rotors = scramblers_[0]->numRotors();
+	const size_t num_rotors = scramblers_[0].numRotors();
 	std::vector<Letter> rotor_offsets(num_rotors, 0);
 	const DoubleMap& null_map = nullDoubleMap();
-	FastQueue<std::pair<Letter, Letter>> bft_queue(NUM_LETTERS * NUM_LETTERS);
 
 	stops_.clear();
 	for(bool terminated = false; !terminated;)
 	{
-		resetWires();
-		bft_queue.clear();
+		// Reset wires
+		for(auto& group : wire_groups_)
+		{
+			group.reset();
+		}
+
+		for(size_t k = 0; k < num_edges; ++k)
+		{
+			const auto& from = scramblers_[k].map();
+			std::copy(from.begin(), from.begin() + NUM_LETTERS, scrambler_maps_[k].map.begin());
+		}
 
 		// Apply voltage to registers
 		for(const auto& reg : menu_.registers)
 		{
-			wire_groups_[reg.first].wires.set(reg.second);
-			bft_queue.emplace(reg.first, reg.second);
+			wire_groups_[reg.first].set(reg.second);
+			wire_groups_[reg.second].set(reg.first); // via diagonal board
 		}
 
-		// Propagate voltage (breadth-first traversal)
-		while(!bft_queue.empty())
+		// Propagate voltage
+		bool changed = true;
+		while(changed)
 		{
-			const auto [group_idx, wire_idx] = bft_queue.front();
-			bft_queue.pop();
-
-			// Via diagonal board
-			if(auto& wires = wire_groups_[wire_idx].wires; !wires[group_idx])
+			changed = false;
+			for(const auto& scrambler_map : scrambler_maps_)
 			{
-				wires.set(group_idx);
-				bft_queue.emplace(wire_idx, group_idx);
-			}
-
-			// Via scramblers
-			const auto& group = wire_groups_[group_idx];
-			for(decltype(group.num_scrambler) k = 0; k < group.num_scrambler; ++k)
-			{
-				const Letter other_group_idx = group.scrambler_ends[k];
-				const Letter other_wire_idx = (*group.scramblers[k])[wire_idx];
-				auto& other_wires = wire_groups_[other_group_idx].wires;
-				if(!other_wires[other_wire_idx])
+				const auto [group_idx1, group_idx2] = scrambler_map.nodes;
+				auto& group1 = wire_groups_[group_idx1];
+				auto& group2 = wire_groups_[group_idx2];
+				for(Letter wire1 = 0; wire1 < NUM_LETTERS; ++wire1)
 				{
-					other_wires.set(other_wire_idx);
-					bft_queue.emplace(other_group_idx, other_wire_idx);
+					const Letter wire2 = scrambler_map.map[wire1];
+					if(group1[wire1] != group2[wire2])
+					{
+						group1.set(wire1);
+						group2.set(wire2);
+						wire_groups_[wire1].set(group_idx1); // via diagonal board
+						wire_groups_[wire2].set(group_idx2); // via diagonal board
+						changed = true;
+					}
 				}
 			}
 		}
 
 		// Check register
 		const Letter reg_letter = menu_.registers[0].first;
-		const size_t num_on = wire_groups_[reg_letter].wires.count();
+		const size_t num_on = wire_groups_[reg_letter].count();
 		if((num_on == 1) || (num_on == (NUM_LETTERS - 1)))
 		{
-			addResult(*scramblers_[0], reg_letter, num_on);
+			addResult(scramblers_[0], reg_letter, num_on);
 		}
 
 		// Step rotors
@@ -197,7 +157,7 @@ const std::vector<Bombe::Stop>& Bombe::run()
 		for(size_t edge_idx = 0; edge_idx < num_edges; ++edge_idx)
 		{
 			const auto& edge = menu_.edges[edge_idx];
-			auto& scrambler = *scramblers_[edge_idx];
+			auto& scrambler = scramblers_[edge_idx];
 			for(size_t k = rotor_idx; k < num_rotors; ++k)
 			{
 				scrambler.setRotorPosition(k, null_map[edge.rotor_positions[k] + rotor_offsets[k]]);
@@ -206,26 +166,6 @@ const std::vector<Bombe::Stop>& Bombe::run()
 	}
 
 	return stops_;
-}
-
-void Bombe::resetWires()
-{
-	for(auto& group : wire_groups_)
-	{
-		group.wires.reset();
-	}
-}
-
-void Bombe::connectScrambler(const Scrambler& scrambler, Letter from, Letter to)
-{
-	auto& group = wire_groups_[from];
-	if(group.num_scrambler >= group.scramblers.size())
-	{
-		throw std::invalid_argument("Too many scramblers per letter");
-	}
-	group.scramblers[group.num_scrambler] = &scrambler.map();
-	group.scrambler_ends[group.num_scrambler] = to;
-	group.num_scrambler += 1;
 }
 
 void Bombe::addResult(const Scrambler& first_scrambler, Letter reg_letter, size_t num_on)
@@ -245,7 +185,7 @@ void Bombe::addResult(const Scrambler& first_scrambler, Letter reg_letter, size_
 
 	stop.stecker.first = reg_letter;
 	const bool voltaged = (num_on == 1);
-	const auto& wires = wire_groups_[reg_letter].wires;
+	const auto& wires = wire_groups_[reg_letter];
 	for(Letter k = 0; k < NUM_LETTERS; ++k)
 	{
 		if(wires[k] == voltaged)
