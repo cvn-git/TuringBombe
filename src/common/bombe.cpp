@@ -1,5 +1,7 @@
 #include "bombe.h"
 
+#include <iostream>
+
 namespace bombe {
 
 Bombe::Menu Bombe::loadMenu(std::span<const std::string> lines)
@@ -106,8 +108,10 @@ const std::vector<Bombe::Stop>& Bombe::run()
 
 		// Propagate voltage
 		bool changed = true;
+		size_t num_loops = 0;
 		while(changed)
 		{
+			++num_loops;
 			changed = false;
 			for(const auto& scrambler_map : scrambler_maps_)
 			{
@@ -128,6 +132,9 @@ const std::vector<Bombe::Stop>& Bombe::run()
 				}
 			}
 		}
+		max_loops_ = std::max(max_loops_, num_loops);
+		total_loops_ += num_loops;
+		++num_orders_;
 
 		// Check register
 		const Letter reg_letter = menu_.registers[0].first;
@@ -195,6 +202,13 @@ void Bombe::addResult(const Scrambler& first_scrambler, Letter reg_letter, size_
 			break;
 		}
 	}
+}
+
+void Bombe::printLoopStatistics() const
+{
+	std::cout << num_orders_ << " rotor orders\n";
+	std::cout << "Maximum: " << max_loops_ << " loops per rotor order\n";
+	std::cout << "Average: " << double(total_loops_) / num_orders_ << " loops per rotor order\n";
 }
 
 } // namespace bombe

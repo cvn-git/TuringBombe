@@ -33,6 +33,8 @@ public:
 
 	const std::vector<Stop>& run();
 
+	void printLoopStatistics() const;
+
 	static Menu loadMenu(std::span<const std::string> lines);
 
 private:
@@ -54,6 +56,11 @@ private:
 	std::vector<Scrambler> scramblers_;
 	std::vector<ScramblerMap> scrambler_maps_;
 	std::vector<Stop> stops_;
+
+	// Loop statistics
+	size_t total_loops_{0};
+	size_t max_loops_{0};
+	size_t num_orders_{0};
 };
 
 } // namespace bombe

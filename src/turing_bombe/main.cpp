@@ -59,6 +59,8 @@ int main(int argc, char** argv)
 
 		bombe::cli::printStops(stops);
 
+		my_bombe.printLoopStatistics();
+
 		return 0;
 	}
 	catch(const std::exception& e)
