@@ -22,7 +22,7 @@ namespace bombe {
 
 Letter char2Letter(char ch)
 {
-	const auto letter = static_cast<Letter>(::towupper(ch) - 'A');
+	const auto letter = static_cast<Letter>(::toupper(ch) - 'A');
 	if(letter >= NUM_LETTERS)
 	{
 		throw std::invalid_argument("char2Letter(): Letter out of bound");

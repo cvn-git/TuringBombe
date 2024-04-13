@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 		const auto duration =
 			std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - tic).count();
 
-		std::cout << std::format("Bombe run takes {} sec\n", duration);
+		std::cout << "Bombe run takes " << duration << " sec\n";
 
 		bombe::cli::printStops(stops);
 
