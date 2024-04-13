@@ -18,6 +18,11 @@ public:
 	{
 		std::vector<MenuEdge> edges;
 		std::vector<std::pair<Letter, Letter>> registers;
+
+		size_t numRotors() const
+		{
+			return edges[0].rotor_positions.size();
+		}
 	};
 
 	struct Stop

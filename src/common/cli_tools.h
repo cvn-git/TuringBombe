@@ -3,6 +3,7 @@
 
 #include "bombe.h"
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
 
@@ -54,6 +55,31 @@ void printStops(std::span<const bombe::Bombe::Stop> stops)
 
 		std::cout << ss.str() << "\n";
 	}
+}
+
+bombe::Bombe::Menu parseMenu(std::span<const char* const>& args)
+{
+	if(args.empty())
+	{
+		throw std::invalid_argument("Cannot parse menu\n");
+	}
+
+	std::vector<std::string> lines;
+	const std::string filename(args[0]);
+	std::ifstream ifs(filename);
+	if(!ifs.is_open())
+	{
+		throw std::invalid_argument("Cannot open the menu file " + filename);
+	}
+	std::string line;
+	while(std::getline(ifs, line, '\n'))
+	{
+		lines.push_back(line);
+		//std::cout << std::format("line({}) size({})\n", line, line.size());
+	}
+
+	args = args.subspan(1);
+	return bombe::Bombe::loadMenu(lines);
 }
 
 } // namespace bombe::cli
