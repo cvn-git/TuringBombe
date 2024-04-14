@@ -9,6 +9,7 @@ enum class ReflectorModel
 {
 	REGULAR_B = 1,
 	REGULAR_C = 2,
+	REGULAR_A = 3, // pre-war models only
 	THIN_B = 101,
 	THIN_C = 102,
 };

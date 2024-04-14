@@ -25,6 +25,10 @@ Reflector::Reflector(ReflectorModel model)
 		wiring = "AFBVCPDJEIGOHYKRLZMXNWQTSU";
 		break;
 
+	case ReflectorModel::REGULAR_A:
+		wiring = "AEBJCMDZFLGYHXIVKWNROQPUST";
+		break;
+
 	case ReflectorModel::THIN_B:
 		wiring = "AEBNCKDQFUGYHWIJLOMPRXSZTV";
 		break;
