@@ -18,13 +18,16 @@ public:
 
 	void process(std::string_view input, std::span<char> output);
 
+	size_t numRotors() const
+	{
+		return std::holds_alternative<Scrambler<3>>(scrambler_) ? 3 : 4;
+	}
+
 private:
 	void resetSteckers();
 
-	void stepScrambler();
-
 private:
-	Scrambler scrambler_;
+	std::variant<std::monostate, Scrambler<3>, Scrambler<4>> scrambler_;
 	SingleMap steckers_;
 };
 

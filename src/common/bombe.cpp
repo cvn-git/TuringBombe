@@ -1,8 +1,11 @@
 #include "bombe.h"
 
+#include <iostream>
+
 namespace bombe {
 
-Bombe::Menu Bombe::loadMenu(std::span<const std::string> lines)
+template <size_t NUM_ROTORS>
+auto Bombe<NUM_ROTORS>::loadMenu(std::span<const std::string> lines) -> Menu
 {
 	Menu menu;
 
@@ -10,16 +13,15 @@ Bombe::Menu Bombe::loadMenu(std::span<const std::string> lines)
 	{
 		throw std::invalid_argument("Empty bombe menu");
 	}
-	const size_t num_rotors = lines[0].size() - 2;
-	if((num_rotors != 3) && (num_rotors != 4))
+	if((lines[0].size() - 2) != NUM_ROTORS)
 	{
 		throw std::invalid_argument("Invalid bombe menu");
 	}
 
-	std::vector<Letter> letters(num_rotors + 2);
+	std::array<Letter, NUM_ROTORS + 2> letters;
 	for(const auto& line : lines)
 	{
-		if(line.size() != (num_rotors + 2))
+		if(line.size() != letters.size())
 		{
 			break;
 		}
@@ -34,8 +36,8 @@ Bombe::Menu Bombe::loadMenu(std::span<const std::string> lines)
 			char2Letter(line, letters);
 			menu.edges.emplace_back();
 			auto& edge = menu.edges.back();
-			edge.nodes = {letters[num_rotors], letters[num_rotors + 1]};
-			edge.rotor_positions = {letters.begin(), letters.begin() + num_rotors};
+			edge.nodes = {letters[NUM_ROTORS], letters[NUM_ROTORS + 1]};
+			std::copy(letters.begin(), letters.begin() + NUM_ROTORS, edge.rotor_positions.begin());
 		}
 	}
 
@@ -47,26 +49,25 @@ Bombe::Menu Bombe::loadMenu(std::span<const std::string> lines)
 	return menu;
 }
 
-Bombe::Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const RotorModel> rotor_models)
+template <size_t NUM_ROTORS>
+Bombe<NUM_ROTORS>::Bombe(const Menu& menu,
+                         ReflectorModel reflector_model,
+                         std::span<const RotorModel, NUM_ROTORS> rotor_models)
 	: menu_{menu}
 	, reflector_model_{reflector_model}
-	, rotor_models_{rotor_models.begin(), rotor_models.end()}
 {
+	std::copy(rotor_models.begin(), rotor_models.end(), rotor_models_.begin());
+
 	// Create scramblers
 	const size_t num_edges = menu.edges.size();
-	const size_t num_rotors = rotor_models.size();
 	scramblers_.reserve(num_edges);
 	scrambler_maps_.resize(num_edges);
 	for(size_t edge_idx = 0; edge_idx < num_edges; ++edge_idx)
 	{
 		const auto& edge = menu.edges[edge_idx];
-		if(edge.rotor_positions.size() != num_rotors)
-		{
-			throw std::invalid_argument("Invalid bombe menu");
-		}
 
 		scramblers_.emplace_back(reflector_model, rotor_models);
-		for(size_t k = 0; k < num_rotors; ++k)
+		for(size_t k = 0; k < NUM_ROTORS; ++k)
 		{
 			scramblers_.back().setRotorPosition(k, edge.rotor_positions[k]);
 		}
@@ -75,11 +76,11 @@ Bombe::Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const R
 	}
 }
 
-const std::vector<Bombe::Stop>& Bombe::run()
+template <size_t NUM_ROTORS>
+auto Bombe<NUM_ROTORS>::run() -> const std::vector<Bombe::Stop>&
 {
 	const size_t num_edges = scramblers_.size();
-	const size_t num_rotors = scramblers_[0].numRotors();
-	std::vector<Letter> rotor_offsets(num_rotors, 0);
+	std::array<Letter, NUM_ROTORS> rotor_offsets{0};
 	const DoubleMap& null_map = nullDoubleMap();
 
 	stops_.clear();
@@ -138,7 +139,7 @@ const std::vector<Bombe::Stop>& Bombe::run()
 		}
 
 		// Step rotors
-		size_t rotor_idx = num_rotors - 1;
+		size_t rotor_idx = NUM_ROTORS - 1;
 		for(;; --rotor_idx)
 		{
 			if(++rotor_offsets[rotor_idx] >= NUM_LETTERS)
@@ -159,7 +160,7 @@ const std::vector<Bombe::Stop>& Bombe::run()
 		{
 			const auto& edge = menu_.edges[edge_idx];
 			auto& scrambler = scramblers_[edge_idx];
-			for(size_t k = rotor_idx; k < num_rotors; ++k)
+			for(size_t k = rotor_idx; k < NUM_ROTORS; ++k)
 			{
 				scrambler.setRotorPosition(k, null_map[edge.rotor_positions[k] + rotor_offsets[k]]);
 			}
@@ -169,17 +170,16 @@ const std::vector<Bombe::Stop>& Bombe::run()
 	return stops_;
 }
 
-void Bombe::addResult(const Scrambler& first_scrambler, Letter reg_letter, size_t num_on)
+template <size_t NUM_ROTORS>
+void Bombe<NUM_ROTORS>::addResult(const Scrambler<NUM_ROTORS>& first_scrambler, Letter reg_letter, size_t num_on)
 {
 	stops_.emplace_back();
 	auto& stop = stops_.back();
 
 	stop.reflector_model = reflector_model_;
-	stop.rotor_models = rotor_models_;
+	std::copy(rotor_models_.begin(), rotor_models_.end(), stop.rotor_models.begin());
 
-	const auto num_rotors = first_scrambler.numRotors();
-	stop.rotor_positions.resize(num_rotors);
-	for(size_t k = 0; k < num_rotors; ++k)
+	for(size_t k = 0; k < NUM_ROTORS; ++k)
 	{
 		stop.rotor_positions[k] = first_scrambler.rotor(k).position();
 	}
@@ -196,5 +196,8 @@ void Bombe::addResult(const Scrambler& first_scrambler, Letter reg_letter, size_
 		}
 	}
 }
+
+template class Bombe<3>;
+template class Bombe<4>;
 
 } // namespace bombe

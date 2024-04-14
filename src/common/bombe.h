@@ -5,12 +5,13 @@
 
 namespace bombe {
 
+template <size_t NUM_ROTORS>
 class Bombe
 {
 public:
 	struct MenuEdge
 	{
-		std::vector<Letter> rotor_positions;
+		std::array<Letter, NUM_ROTORS> rotor_positions;
 		std::pair<Letter, Letter> nodes;
 	};
 
@@ -28,13 +29,13 @@ public:
 	struct Stop
 	{
 		ReflectorModel reflector_model;
-		std::vector<RotorModel> rotor_models;
-		std::vector<Letter> rotor_positions;
+		std::array<RotorModel, NUM_ROTORS> rotor_models;
+		std::array<Letter, NUM_ROTORS> rotor_positions;
 		std::pair<Letter, Letter> stecker;
 	};
 
 public:
-	Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const RotorModel> rotor_models);
+	Bombe(const Menu& menu, ReflectorModel reflector_model, std::span<const RotorModel, NUM_ROTORS> rotor_models);
 
 	const std::vector<Stop>& run();
 
@@ -49,14 +50,14 @@ private:
 	};
 	static_assert(sizeof(ScramblerMap) == 32, "Invalid ScramblerMap size");
 
-	void addResult(const Scrambler& first_scrambler, Letter reg_letter, size_t num_on);
+	void addResult(const Scrambler<NUM_ROTORS>& first_scrambler, Letter reg_letter, size_t num_on);
 
 private:
 	std::array<std::bitset<NUM_LETTERS>, NUM_LETTERS> wire_groups_;
 	const Menu& menu_;
 	const ReflectorModel reflector_model_;
-	const std::vector<RotorModel> rotor_models_;
-	std::vector<Scrambler> scramblers_;
+	std::array<RotorModel, NUM_ROTORS> rotor_models_;
+	std::vector<Scrambler<NUM_ROTORS>> scramblers_;
 	std::vector<ScramblerMap> scrambler_maps_;
 	std::vector<Stop> stops_;
 };

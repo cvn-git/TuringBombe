@@ -37,7 +37,8 @@ std::vector<bombe::RotorModel> parseRotorModels(std::span<const char* const>& ar
 	return models;
 }
 
-void printStops(std::span<const bombe::Bombe::Stop> stops)
+template <size_t NUM_ROTORS>
+void printStops(std::span<const typename bombe::Bombe<NUM_ROTORS>::Stop> stops)
 {
 	for(const auto& stop : stops)
 	{
@@ -57,7 +58,7 @@ void printStops(std::span<const bombe::Bombe::Stop> stops)
 	}
 }
 
-bombe::Bombe::Menu parseMenu(std::span<const char* const>& args)
+std::variant<bombe::Bombe<3>::Menu, bombe::Bombe<4>::Menu> parseMenu(std::span<const char* const>& args)
 {
 	if(args.empty())
 	{
@@ -79,7 +80,15 @@ bombe::Bombe::Menu parseMenu(std::span<const char* const>& args)
 	}
 
 	args = args.subspan(1);
-	return bombe::Bombe::loadMenu(lines);
+
+	if(lines[0].size() == 5)
+	{
+		return bombe::Bombe<3>::loadMenu(lines);
+	}
+	else
+	{
+		return bombe::Bombe<4>::loadMenu(lines);
+	}
 }
 
 } // namespace bombe::cli

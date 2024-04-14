@@ -3,14 +3,22 @@
 namespace bombe {
 
 Enigma::Enigma(ReflectorModel reflector_model, std::span<const RotorModel> rotor_models)
-	: scrambler_{reflector_model, rotor_models}
 {
+	if(rotor_models.size() == 3)
+	{
+		scrambler_.emplace<Scrambler<3>>(reflector_model, std::span<const RotorModel, 3>(rotor_models));
+	}
+	else
+	{
+		scrambler_.emplace<Scrambler<4>>(reflector_model, std::span<const RotorModel, 4>(rotor_models));
+	}
+
 	resetSteckers();
 }
 
 void Enigma::configureRotors(std::string_view ringstellung, std::string_view grundstellung)
 {
-	const size_t num_rotors = scrambler_.numRotors();
+	const size_t num_rotors = numRotors();
 	if((ringstellung.size() != num_rotors) || (grundstellung.size() != num_rotors))
 	{
 		throw std::invalid_argument("Invalid ringstellung/grundstellung size");
@@ -20,7 +28,14 @@ void Enigma::configureRotors(std::string_view ringstellung, std::string_view gru
 	char2Letter(ringstellung, ring_positions);
 	for(size_t k = 0; k < num_rotors; ++k)
 	{
-		scrambler_.setRotorRing(k, ring_positions[k]);
+		if(num_rotors == 3)
+		{
+			std::get<Scrambler<3>>(scrambler_).setRotorRing(k, ring_positions[k]);
+		}
+		else
+		{
+			std::get<Scrambler<4>>(scrambler_).setRotorRing(k, ring_positions[k]);
+		}
 	}
 
 	std::vector<Letter> grundstellung_letters(num_rotors);
@@ -28,8 +43,20 @@ void Enigma::configureRotors(std::string_view ringstellung, std::string_view gru
 	const DoubleMap& null_map = nullDoubleMap();
 	for(size_t rotor_idx = 0; rotor_idx < num_rotors; ++rotor_idx)
 	{
-		const Rotor& rotor = scrambler_.rotor(rotor_idx);
-		scrambler_.setRotorPosition(rotor_idx, null_map[grundstellung_letters[rotor_idx] + NUM_LETTERS - rotor.ring()]);
+		if(num_rotors == 3)
+		{
+			auto& scrambler = std::get<Scrambler<3>>(scrambler_);
+			scrambler.setRotorPosition(
+				rotor_idx,
+				null_map[grundstellung_letters[rotor_idx] + NUM_LETTERS - scrambler.rotor(rotor_idx).ring()]);
+		}
+		else
+		{
+			auto& scrambler = std::get<Scrambler<4>>(scrambler_);
+			scrambler.setRotorPosition(
+				rotor_idx,
+				null_map[grundstellung_letters[rotor_idx] + NUM_LETTERS - scrambler.rotor(rotor_idx).ring()]);
+		}
 	}
 }
 
@@ -80,8 +107,18 @@ void Enigma::process(std::span<const Letter> input, std::span<Letter> output)
 
 	for(size_t k = 0; k < input.size(); ++k)
 	{
-		stepScrambler();
-		output[k] = steckers_[scrambler_.map()[steckers_[input[k]]]];
+		if(numRotors() == 3)
+		{
+			auto& scrambler = std::get<Scrambler<3>>(scrambler_);
+			scrambler.stepEnigma();
+			output[k] = steckers_[scrambler.map()[steckers_[input[k]]]];
+		}
+		else
+		{
+			auto& scrambler = std::get<Scrambler<4>>(scrambler_);
+			scrambler.stepEnigma();
+			output[k] = steckers_[scrambler.map()[steckers_[input[k]]]];
+		}
 	}
 }
 
@@ -101,33 +138,6 @@ void Enigma::resetSteckers()
 	{
 		steckers_[k] = k;
 	}
-}
-
-void Enigma::stepScrambler()
-{
-	const DoubleMap& null_map = nullDoubleMap();
-
-	const size_t num_rotors = scrambler_.numRotors();
-	const size_t slow_idx = num_rotors - 3;
-	const size_t mid_idx = num_rotors - 2;
-	const size_t fast_idx = num_rotors - 1;
-
-	const Rotor& slow_rotor = scrambler_.rotor(slow_idx);
-	const Rotor& mid_rotor = scrambler_.rotor(mid_idx);
-	const Rotor& fast_rotor = scrambler_.rotor(fast_idx);
-
-	if(mid_rotor.isTurnover())
-	{
-		// Double step
-		scrambler_.setRotorPosition(slow_idx, null_map[slow_rotor.position() + 1]);
-		scrambler_.setRotorPosition(mid_idx, null_map[mid_rotor.position() + 1]);
-	}
-	else if(fast_rotor.isTurnover())
-	{
-		scrambler_.setRotorPosition(mid_idx, null_map[mid_rotor.position() + 1]);
-	}
-
-	scrambler_.setRotorPosition(fast_idx, null_map[fast_rotor.position() + 1]);
 }
 
 } // namespace bombe

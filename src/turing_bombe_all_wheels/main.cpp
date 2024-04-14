@@ -29,13 +29,15 @@ auto allocateLoads(size_t total, size_t num_threads)
 	return loads;
 }
 
-using ThreadWorks = std::vector<std::pair<bombe::ReflectorModel, std::vector<bombe::RotorModel>>>;
+template <size_t NUM_ROTORS>
+using ThreadWorks = std::vector<std::pair<bombe::ReflectorModel, std::array<bombe::RotorModel, NUM_ROTORS>>>;
 
-auto generateThreadWorks(size_t num_rotors, size_t num_threads)
+template <size_t NUM_ROTORS>
+auto generateThreadWorks(size_t num_threads)
 {
-	std::vector<ThreadWorks> works(1);
+	std::vector<ThreadWorks<NUM_ROTORS>> works(1);
 
-	if(num_rotors == 3)
+	if constexpr(NUM_ROTORS == 3)
 	{
 		std::vector<bombe::ReflectorModel> reflector_pool = {bombe::ReflectorModel::REGULAR_B,
 		                                                     bombe::ReflectorModel::REGULAR_C};
@@ -56,13 +58,12 @@ auto generateThreadWorks(size_t num_rotors, size_t num_threads)
 				}
 				auto& work = works.back().emplace_back();
 				work.first = reflector;
-				work.second.resize(3);
 				std::copy(rotors.begin(), rotors.begin() + 3, work.second.begin());
 				std::reverse(rotors.begin() + 3, rotors.end());
 			} while(std::next_permutation(rotors.begin(), rotors.end()));
 		}
 	}
-	else if(num_rotors == 4)
+	else
 	{
 		std::vector<bombe::ReflectorModel> reflector_pool = {bombe::ReflectorModel::THIN_B,
 		                                                     bombe::ReflectorModel::THIN_C};
@@ -90,17 +91,12 @@ auto generateThreadWorks(size_t num_rotors, size_t num_threads)
 					}
 					auto& work = works.back().emplace_back();
 					work.first = reflector;
-					work.second.resize(4);
 					work.second[0] = thin_rotor;
 					std::copy(rotors.begin(), rotors.begin() + 3, work.second.begin() + 1);
 					std::reverse(rotors.begin() + 3, rotors.end());
 				} while(std::next_permutation(rotors.begin(), rotors.end()));
 			}
 		}
-	}
-	else
-	{
-		throw std::invalid_argument("Invalid number of rotors");
 	}
 
 #if 1
@@ -129,13 +125,15 @@ auto generateThreadWorks(size_t num_rotors, size_t num_threads)
 	return works;
 }
 
-std::vector<bombe::Bombe::Stop> threadProcessing(const bombe::Bombe::Menu& menu, ThreadWorks&& works)
+template <size_t NUM_ROTORS>
+std::vector<typename bombe::Bombe<NUM_ROTORS>::Stop>
+threadProcessing(const typename bombe::Bombe<NUM_ROTORS>::Menu& menu, ThreadWorks<NUM_ROTORS>&& works)
 {
-	std::vector<bombe::Bombe::Stop> all_stops;
+	std::vector<typename bombe::Bombe<NUM_ROTORS>::Stop> all_stops;
 
 	for(const auto& work : works)
 	{
-		bombe::Bombe my_bombe(menu, work.first, work.second);
+		bombe::Bombe<NUM_ROTORS> my_bombe(menu, work.first, work.second);
 		const auto& stops = my_bombe.run();
 		const size_t old_size = all_stops.size();
 		all_stops.resize(old_size + stops.size());
@@ -143,6 +141,40 @@ std::vector<bombe::Bombe::Stop> threadProcessing(const bombe::Bombe::Menu& menu,
 	}
 
 	return all_stops;
+}
+
+template <size_t NUM_ROTORS>
+void runAllBombes(const typename bombe::Bombe<NUM_ROTORS>::Menu& menu, size_t num_threads)
+{
+	using Stop = typename bombe::Bombe<NUM_ROTORS>::Stop;
+
+	auto thread_works = generateThreadWorks<NUM_ROTORS>(num_threads);
+	std::vector<std::thread> threads;
+	std::vector<std::future<std::vector<Stop>>> results;
+	const auto tic = std::chrono::steady_clock::now();
+	for(size_t thread_idx = 0; thread_idx < num_threads; ++thread_idx)
+	{
+		std::packaged_task<std::vector<Stop>(const typename bombe::Bombe<NUM_ROTORS>::Menu&, ThreadWorks<NUM_ROTORS>&&)>
+			task(&threadProcessing<NUM_ROTORS>);
+		results.push_back(task.get_future());
+		threads.emplace_back(std::move(task), std::ref(menu), std::move(thread_works[thread_idx]));
+	}
+
+	std::vector<Stop> all_stops;
+	for(size_t thread_idx = 0; thread_idx < num_threads; ++thread_idx)
+	{
+		threads[thread_idx].join();
+		const auto& stops = results[thread_idx].get();
+		const size_t old_size = all_stops.size();
+		all_stops.resize(old_size + stops.size());
+		std::copy(stops.begin(), stops.end(), all_stops.begin() + old_size);
+	}
+	const auto duration =
+		std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - tic).count();
+
+	//bombe::cli::printStops(all_stops);
+	std::cout << "Total " << all_stops.size() << " stops\n";
+	std::cout << "All bombe runs take " << duration << " sec\n";
 }
 
 } // anonymous namespace
@@ -160,33 +192,14 @@ int main(int argc, char** argv)
 		}
 		const size_t num_threads = std::stoi(args[0]);
 
-		auto thread_works = generateThreadWorks(menu.numRotors(), num_threads);
-		std::vector<std::thread> threads;
-		std::vector<std::future<std::vector<bombe::Bombe::Stop>>> results;
-		const auto tic = std::chrono::steady_clock::now();
-		for(size_t thread_idx = 0; thread_idx < num_threads; ++thread_idx)
+		if(std::holds_alternative<typename bombe::Bombe<3>::Menu>(menu))
 		{
-			std::packaged_task<std::vector<bombe::Bombe::Stop>(const bombe::Bombe::Menu&, ThreadWorks&&)> task(
-				&threadProcessing);
-			results.push_back(task.get_future());
-			threads.emplace_back(std::move(task), std::ref(menu), std::move(thread_works[thread_idx]));
+			runAllBombes<3>(std::get<bombe::Bombe<3>::Menu>(menu), num_threads);
 		}
-
-		std::vector<bombe::Bombe::Stop> all_stops;
-		for(size_t thread_idx = 0; thread_idx < num_threads; ++thread_idx)
+		else
 		{
-			threads[thread_idx].join();
-			const auto& stops = results[thread_idx].get();
-			const size_t old_size = all_stops.size();
-			all_stops.resize(old_size + stops.size());
-			std::copy(stops.begin(), stops.end(), all_stops.begin() + old_size);
+			runAllBombes<4>(std::get<bombe::Bombe<4>::Menu>(menu), num_threads);
 		}
-		const auto duration =
-			std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - tic).count();
-
-		//bombe::cli::printStops(all_stops);
-		std::cout << "Total " << all_stops.size() << " stops\n";
-		std::cout << "All bombe runs take " << duration << " sec\n";
 
 		return 0;
 	}
