@@ -80,7 +80,7 @@ Usage: `turing_bombe_all_wheels <menufile> <threads>`
 Examples:
 
 ```dos
-./enigma_app_all_wheels data/menu.txt 8
+./turing_bombe_all_wheels data/menu.txt 8
 Work allocation:
 Thread #1: 15 wheel orders
 Thread #2: 15 wheel orders
@@ -96,7 +96,7 @@ All bombe runs take 0.842236 sec
 ```
 
 ```dos
-./enigma_app_all_wheels data/test_menu.txt 8
+./turing_bombe_all_wheels data/test_menu.txt 8
 Work allocation:
 Thread #1: 168 wheel orders
 Thread #2: 168 wheel orders
